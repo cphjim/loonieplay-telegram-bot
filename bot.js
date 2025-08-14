@@ -1,3 +1,4 @@
+require('dotenv').config();
 const { Telegraf } = require('telegraf');
 
 const bot = new Telegraf(process.env.BOT_TOKEN);
@@ -27,6 +28,5 @@ bot.command('verify', (ctx) => {
   ctx.reply('🔐 Please upload a clear photo of your ID to begin verification.\n(This feature will be automated later with OCR)');
 });
 
-// Launch bot
 bot.launch();
 console.log('✅ Bot is live');
