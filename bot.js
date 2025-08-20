@@ -4,6 +4,7 @@ require('dotenv').config();
 const express = require('express');
 const crypto = require('crypto');
 const { Telegraf, Markup } = require('telegraf');
+const path = require('path');
 
 const BOT_TOKEN = process.env.BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN;
 if (!BOT_TOKEN) throw new Error('Missing BOT_TOKEN env var');
@@ -16,6 +17,11 @@ const HOOK_PATH = `/telegram/webhook/${hash}`;
 const PORT = process.env.PORT || 10_000;
 const PUBLIC_BASE =
   process.env.RENDER_EXTERNAL_URL || process.env.WEBHOOK_URL || process.env.PUBLIC_URL;
+
+// banner url (gebruik je env BANNER_URL als je wilt, anders /static/…)
+const BANNER_URL =
+  process.env.BANNER_URL ||
+  (PUBLIC_BASE ? `${PUBLIC_BASE}/static/${encodeURIComponent('startonoctoberfirst!.gif')}` : '');
 
 const mainMenu = () =>
   Markup.inlineKeyboard([
@@ -64,8 +70,28 @@ bot.use(async (ctx, next) => {
 // ---------- views / handlers ----------
 async function sendHome(ctx) {
   const name = ctx.from?.first_name || 'Loonie';
+
+  // probeer eerst de banner (gif/mp4)
+  if (BANNER_URL) {
+    try {
+      await ctx.replyWithAnimation(BANNER_URL, {
+        caption:
+          `✨ Welcome, ${name}!\n\n` +
+          `You're now chatting with the official <i>LooniePlay Bot</i>.\n` +
+          `Pick an option below.`,
+        parse_mode: 'HTML',
+        ...mainMenu()
+      });
+      return;
+    } catch (e) {
+      console.warn('Banner failed, fallback to text:', e.message);
+    }
+  }
+
+  // tekst fallback
   await ctx.replyWithMarkdown(
-    `${ai()} *Welcome, ${name}!*\n\nYou're now chatting with the official _LooniePlay Bot_.\nPick an option below.`,
+    `${ai()} *Welcome, ${name}!*` +
+      `\n\nYou're now chatting with the official _LooniePlay Bot_.\nPick an option below.`,
     mainMenu()
   );
 }
@@ -89,10 +115,10 @@ bot.help(async (ctx) => {
 async function showPromo(ctx) {
   await ctx.replyWithHTML(
     '🎁 <b>Current Promotions</b>\n\n' +
-    '• 💯 100% Welcome Bonus\n' +
-    '• 🎰 Free Spins Friday\n' +
-    '• 🔄 LoonieSpin Challenge\n\n' +
-    'Use <b>/promo</b> anytime for updates.',
+      '• 💯 100% Welcome Bonus\n' +
+      '• 🎰 Free Spins Friday\n' +
+      '• 🔄 LoonieSpin Challenge\n\n' +
+      'Use <b>/promo</b> anytime for updates.',
     Markup.inlineKeyboard([
       [Markup.button.url('🌐 Visit site', 'https://loonieplay.com')],
       [Markup.button.callback('⬅️ Back to menu', 'HOME')],
@@ -109,11 +135,11 @@ bot.action('PROMO', async (ctx) => {
 async function showFaq(ctx) {
   await ctx.replyWithHTML(
     '📖 <b>Top 3 Questions</b>\n\n' +
-    '1️⃣ <b>How do I verify?</b> — Use <b>/verify</b>\n' +
-    '2️⃣ <b>Where is my bonus?</b> — After first deposit 🎁\n' +
-    '3️⃣ <b>Withdrawals?</b> — 24–72h via bank or crypto\n\n' +
-    'AI-powered FAQ is coming soon 🤖',
-    Markup.inlineKeyboard([[Markup.button.callback('⬅️ Back to menu', 'HOME')]])
+      '1️⃣ <b>How do I verify?</b> — Use <b>/verify</b>\n' +
+      '2️⃣ <b>Where is my bonus?</b> — After first deposit 🎁\n' +
+      '3️⃣ <b>Withdrawals?</b> — 24–72h via bank or crypto\n\n' +
+      'AI-powered FAQ is coming soon 🤖',
+    backMenu()
   );
 }
 bot.command('faq', (ctx) => showFaq(ctx));
@@ -126,9 +152,9 @@ bot.action('FAQ', async (ctx) => {
 async function showSupport(ctx) {
   await ctx.replyWithHTML(
     '🆘 <b>Need help?</b>\n\n' +
-    '• Live support: <a href="https://loonieplay.com/support">Open support</a>\n' +
-    '• Or ask your question here — our team is watching 👀',
-    Markup.inlineKeyboard([[Markup.button.callback('⬅️ Back to menu', 'HOME')]])
+      '• Live support: <a href="https://loonieplay.com/support">Open support</a>\n' +
+      '• Or ask your question here — our team is watching 👀',
+    backMenu()
   );
 }
 bot.command('support', (ctx) => showSupport(ctx));
@@ -141,8 +167,8 @@ bot.action('SUPPORT', async (ctx) => {
 async function showVerify(ctx) {
   await ctx.replyWithHTML(
     '🔐 <b>ID Verification</b>\n\n' +
-    'OCR-based instant check is coming soon.\n' +
-    'For now, you can link your Telegram via pre-verification.',
+      'OCR-based instant check is coming soon.\n' +
+      'For now, you can link your Telegram via pre-verification.',
     Markup.inlineKeyboard([
       [Markup.button.callback('🚀 Start pre-verify', 'PREVERIFY')],
       [Markup.button.callback('⬅️ Back to menu', 'HOME')],
@@ -167,10 +193,10 @@ bot.action('PREVERIFY', async (ctx) => {
 async function showTournaments(ctx) {
   await ctx.replyWithHTML(
     '🎮 <b>Upcoming Tournaments</b>\n\n' +
-    '🏆 CS2 Weekend Showdown\n' +
-    '🎲 Slot Spin-Off Battle\n' +
-    '🕹️ 1v1 Loonie Arena\n\n' +
-    'More info on our website.',
+      '🏆 CS2 Weekend Showdown\n' +
+      '🎲 Slot Spin-Off Battle\n' +
+      '🕹️ 1v1 Loonie Arena\n\n' +
+      'More info on our website.',
     Markup.inlineKeyboard([
       [Markup.button.url('📅 Tournaments', 'https://loonieplay.com/tournaments')],
       [Markup.button.callback('⬅️ Back to menu', 'HOME')],
@@ -202,8 +228,11 @@ bot.on('text', async (ctx) => {
 // ---------- webhook server (no polling, no bot.launch) ----------
 const app = express();
 app.use(express.json());
+
+// health + static files
 app.get('/', (_req, res) => res.status(200).send('LooniePlay Telegram bot is up.'));
 app.get('/healthz', (_req, res) => res.status(200).send('ok'));
+app.use('/static', express.static(path.join(__dirname, 'public')));
 
 // Attach Telegraf webhook handler
 app.use(bot.webhookCallback(HOOK_PATH));
