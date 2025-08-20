@@ -1,12 +1,22 @@
 {
   "name": "loonieplay-telegram-bot",
   "version": "1.0.0",
+  "private": true,
+  "description": "Official LooniePlay Casino Telegram bot (Telegraf + Express + Webhooks)",
   "main": "bot.js",
   "scripts": {
-    "start": "node bot.js"
+    "start": "node bot.js",
+    "dev": "nodemon bot.js"
+  },
+  "engines": {
+    "node": "20.x"
   },
   "dependencies": {
-    "dotenv": "^16.0.3",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
     "telegraf": "^4.12.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0"
   }
 }
