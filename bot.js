@@ -88,11 +88,11 @@ bot.help(async (ctx) => {
 // ----- PROMO -----
 async function showPromo(ctx) {
   await ctx.replyWithHTML(
-    `🎁 <b>Current Promotions</b><br><br>` +
-      `• 💯 100% Welcome Bonus<br>` +
-      `• 🎰 Free Spins Friday<br>` +
-      `• 🔄 LoonieSpin Challenge<br><br>` +
-      `Use <b>/promo</b> anytime for updates.`,
+    '🎁 <b>Current Promotions</b>\n\n' +
+    '• 💯 100% Welcome Bonus\n' +
+    '• 🎰 Free Spins Friday\n' +
+    '• 🔄 LoonieSpin Challenge\n\n' +
+    'Use <b>/promo</b> anytime for updates.',
     Markup.inlineKeyboard([
       [Markup.button.url('🌐 Visit site', 'https://loonieplay.com')],
       [Markup.button.callback('⬅️ Back to menu', 'HOME')],
@@ -108,12 +108,12 @@ bot.action('PROMO', async (ctx) => {
 // ----- FAQ -----
 async function showFaq(ctx) {
   await ctx.replyWithHTML(
-    `📖 <b>Top 3 Questions</b><br><br>` +
-      `1️⃣ <b>How do I verify?</b> — Use <b>/verify</b><br>` +
-      `2️⃣ <b>Where is my bonus?</b> — After first deposit 🎁<br>` +
-      `3️⃣ <b>Withdrawals?</b> — 24–72h via bank or crypto<br><br>` +
-      `AI-powered FAQ is coming soon 🤖`,
-    backMenu()
+    '📖 <b>Top 3 Questions</b>\n\n' +
+    '1️⃣ <b>How do I verify?</b> — Use <b>/verify</b>\n' +
+    '2️⃣ <b>Where is my bonus?</b> — After first deposit 🎁\n' +
+    '3️⃣ <b>Withdrawals?</b> — 24–72h via bank or crypto\n\n' +
+    'AI-powered FAQ is coming soon 🤖',
+    Markup.inlineKeyboard([[Markup.button.callback('⬅️ Back to menu', 'HOME')]])
   );
 }
 bot.command('faq', (ctx) => showFaq(ctx));
@@ -125,10 +125,10 @@ bot.action('FAQ', async (ctx) => {
 // ----- SUPPORT -----
 async function showSupport(ctx) {
   await ctx.replyWithHTML(
-    `🆘 <b>Need help?</b><br><br>` +
-      `• Live support: <a href="https://loonieplay.com/support">Open support</a><br>` +
-      `• Or ask your question here — our team is watching 👀`,
-    backMenu()
+    '🆘 <b>Need help?</b>\n\n' +
+    '• Live support: <a href="https://loonieplay.com/support">Open support</a>\n' +
+    '• Or ask your question here — our team is watching 👀',
+    Markup.inlineKeyboard([[Markup.button.callback('⬅️ Back to menu', 'HOME')]])
   );
 }
 bot.command('support', (ctx) => showSupport(ctx));
@@ -140,9 +140,9 @@ bot.action('SUPPORT', async (ctx) => {
 // ----- VERIFY -----
 async function showVerify(ctx) {
   await ctx.replyWithHTML(
-    `🔐 <b>ID Verification</b><br><br>` +
-      `OCR-based instant check is coming soon.<br>` +
-      `For now, you can link your Telegram via pre-verification.`,
+    '🔐 <b>ID Verification</b>\n\n' +
+    'OCR-based instant check is coming soon.\n' +
+    'For now, you can link your Telegram via pre-verification.',
     Markup.inlineKeyboard([
       [Markup.button.callback('🚀 Start pre-verify', 'PREVERIFY')],
       [Markup.button.callback('⬅️ Back to menu', 'HOME')],
@@ -166,11 +166,11 @@ bot.action('PREVERIFY', async (ctx) => {
 // ----- TOURNAMENTS -----
 async function showTournaments(ctx) {
   await ctx.replyWithHTML(
-    `🎮 <b>Upcoming Tournaments</b><br><br>` +
-      `🏆 CS2 Weekend Showdown<br>` +
-      `🎲 Slot Spin-Off Battle<br>` +
-      `🕹️ 1v1 Loonie Arena<br><br>` +
-      `More info on our website.`,
+    '🎮 <b>Upcoming Tournaments</b>\n\n' +
+    '🏆 CS2 Weekend Showdown\n' +
+    '🎲 Slot Spin-Off Battle\n' +
+    '🕹️ 1v1 Loonie Arena\n\n' +
+    'More info on our website.',
     Markup.inlineKeyboard([
       [Markup.button.url('📅 Tournaments', 'https://loonieplay.com/tournaments')],
       [Markup.button.callback('⬅️ Back to menu', 'HOME')],
