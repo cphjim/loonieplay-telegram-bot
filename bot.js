@@ -18,10 +18,28 @@ const PORT = process.env.PORT || 10_000;
 const PUBLIC_BASE =
   process.env.RENDER_EXTERNAL_URL || process.env.WEBHOOK_URL || process.env.PUBLIC_URL;
 
-// banner url (gebruik je env BANNER_URL als je wilt, anders /static/…)
+// banners
 const BANNER_URL =
   process.env.BANNER_URL ||
   (PUBLIC_BASE ? `${PUBLIC_BASE}/static/${encodeURIComponent('startonoctoberfirst!.gif')}` : '');
+
+const AFFILIATE_BANNER_URL =
+  process.env.AFFILIATE_BANNER_URL ||
+  (PUBLIC_BASE ? `${PUBLIC_BASE}/static/${encodeURIComponent('becomeaaffiliate.gif')}` : '');
+
+// affiliate urls (opt.)
+const AFFILIATE_PORTAL_URL = process.env.AFFILIATE_PORTAL_URL || '';
+const AFFILIATE_PAYOUTS_URL = process.env.AFFILIATE_PAYOUTS_URL || '';
+const AFFILIATE_SUPPORT_URL = process.env.AFFILIATE_SUPPORT_URL || '';
+const AFFILIATE_APPLY_URL = process.env.AFFILIATE_APPLY_URL || 'https://loonieplay.com/affiliates';
+
+// kevin contact
+const KEVIN_PHONE_DISPLAY = '+31 (0)6 16146537';
+const KEVIN_PHONE_TEL = 'tel:+31616146537';
+const KEVIN_EMAIL = 'Kevin@loonieplay.com';
+const KEVIN_EMAIL_MAILTO = `mailto:${encodeURIComponent(KEVIN_EMAIL)}?subject=${encodeURIComponent('LooniePlay affiliate inquiry')}`;
+const KEVIN_TG = (process.env.KEVIN_TG || '').replace(/^@/, '');
+const KEVIN_LINKEDIN = process.env.KEVIN_LINKEDIN || '';
 
 const mainMenu = () =>
   Markup.inlineKeyboard([
@@ -30,6 +48,7 @@ const mainMenu = () =>
     [Markup.button.callback('🆘 Support', 'SUPPORT')],
     [Markup.button.callback('🔐 Verify Me', 'VERIFY')],
     [Markup.button.callback('🎮 Tournaments', 'TOURNAMENTS')],
+    [Markup.button.callback('🤝 Affiliates', 'AFFILIATES')],
   ]);
 
 const backMenu = () =>
@@ -42,15 +61,12 @@ bot.catch((err, ctx) => {
   console.error('Bot error on', ctx.updateType, err);
 });
 
-// Optional: typing hint for DM chats
 bot.use(async (ctx, next) => {
-  try {
-    if (ctx.chat?.type === 'private') await ctx.sendChatAction('typing');
-  } catch {}
+  try { if (ctx.chat?.type === 'private') await ctx.sendChatAction('typing'); } catch {}
   return next();
 });
 
-// Expose slash commands to users
+// slash commands
 (async () => {
   try {
     await bot.telegram.setMyCommands([
@@ -60,6 +76,7 @@ bot.use(async (ctx, next) => {
       { command: 'verify', description: 'Start verification' },
       { command: 'faq', description: 'Top questions' },
       { command: 'tournament', description: 'Upcoming tournaments' },
+      { command: 'affiliates', description: 'Affiliate info & join' },
       { command: 'help', description: 'What can this bot do?' },
     ]);
   } catch (e) {
@@ -70,8 +87,6 @@ bot.use(async (ctx, next) => {
 // ---------- views / handlers ----------
 async function sendHome(ctx) {
   const name = ctx.from?.first_name || 'Loonie';
-
-  // probeer eerst de banner (gif/mp4)
   if (BANNER_URL) {
     try {
       await ctx.replyWithAnimation(BANNER_URL, {
@@ -87,8 +102,6 @@ async function sendHome(ctx) {
       console.warn('Banner failed, fallback to text:', e.message);
     }
   }
-
-  // tekst fallback
   await ctx.replyWithMarkdown(
     `${ai()} *Welcome, ${name}!*` +
       `\n\nYou're now chatting with the official _LooniePlay Bot_.\nPick an option below.`,
@@ -98,6 +111,7 @@ async function sendHome(ctx) {
 
 // /start & /help
 bot.start(sendHome);
+bot.command('menu', sendHome);
 bot.help(async (ctx) => {
   await ctx.replyWithMarkdown(
     `${ai()} I can help with:\n` +
@@ -105,7 +119,8 @@ bot.help(async (ctx) => {
       `• /support – help & contact\n` +
       `• /verify – start verification\n` +
       `• /faq – quick answers\n` +
-      `• /tournament – events\n\n` +
+      `• /tournament – events\n` +
+      `• /affiliates – partner with us\n\n` +
       `Or just use the buttons below.`,
     mainMenu()
   );
@@ -114,10 +129,10 @@ bot.help(async (ctx) => {
 // ----- PROMO -----
 async function showPromo(ctx) {
   await ctx.replyWithHTML(
-    '🎁 <b>Current Promotions</b>\n\n' +
-      '• 💯 100% Welcome Bonus\n' +
+    '🎁 <b>Current promotions</b>\n\n' +
+      '• 💯 100% welcome bonus\n' +
       '• 🎰 Free Spins Friday\n' +
-      '• 🔄 LoonieSpin Challenge\n\n' +
+      '• 🔄 LoonieSpin challenge\n\n' +
       'Use <b>/promo</b> anytime for updates.',
     Markup.inlineKeyboard([
       [Markup.button.url('🌐 Visit site', 'https://loonieplay.com')],
@@ -126,15 +141,12 @@ async function showPromo(ctx) {
   );
 }
 bot.command('promo', (ctx) => showPromo(ctx));
-bot.action('PROMO', async (ctx) => {
-  try { await ctx.answerCbQuery(); } catch {}
-  return showPromo(ctx);
-});
+bot.action('PROMO', async (ctx) => { try { await ctx.answerCbQuery(); } catch {} return showPromo(ctx); });
 
 // ----- FAQ -----
 async function showFaq(ctx) {
   await ctx.replyWithHTML(
-    '📖 <b>Top 3 Questions</b>\n\n' +
+    '📖 <b>Top questions</b>\n\n' +
       '1️⃣ <b>How do I verify?</b> — Use <b>/verify</b>\n' +
       '2️⃣ <b>Where is my bonus?</b> — After first deposit 🎁\n' +
       '3️⃣ <b>Withdrawals?</b> — 24–72h via bank or crypto\n\n' +
@@ -143,30 +155,24 @@ async function showFaq(ctx) {
   );
 }
 bot.command('faq', (ctx) => showFaq(ctx));
-bot.action('FAQ', async (ctx) => {
-  try { await ctx.answerCbQuery(); } catch {}
-  return showFaq(ctx);
-});
+bot.action('FAQ', async (ctx) => { try { await ctx.answerCbQuery(); } catch {} return showFaq(ctx); });
 
 // ----- SUPPORT -----
 async function showSupport(ctx) {
   await ctx.replyWithHTML(
     '🆘 <b>Need help?</b>\n\n' +
-      '• Live support: <a href="https://loonieplay.com/support">Open support</a>\n' +
+      '• Live support: <a href="https://loonieplay.com/support">open support</a>\n' +
       '• Or ask your question here — our team is watching 👀',
     backMenu()
   );
 }
 bot.command('support', (ctx) => showSupport(ctx));
-bot.action('SUPPORT', async (ctx) => {
-  try { await ctx.answerCbQuery(); } catch {}
-  return showSupport(ctx);
-});
+bot.action('SUPPORT', async (ctx) => { try { await ctx.answerCbQuery(); } catch {} return showSupport(ctx); });
 
 // ----- VERIFY -----
 async function showVerify(ctx) {
   await ctx.replyWithHTML(
-    '🔐 <b>ID Verification</b>\n\n' +
+    '🔐 <b>ID verification</b>\n\n' +
       'OCR-based instant check is coming soon.\n' +
       'For now, you can link your Telegram via pre-verification.',
     Markup.inlineKeyboard([
@@ -176,23 +182,16 @@ async function showVerify(ctx) {
   );
 }
 bot.command('verify', (ctx) => showVerify(ctx));
-bot.action('VERIFY', async (ctx) => {
-  try { await ctx.answerCbQuery(); } catch {}
-  return showVerify(ctx);
-});
-
+bot.action('VERIFY', async (ctx) => { try { await ctx.answerCbQuery(); } catch {} return showVerify(ctx); });
 bot.action('PREVERIFY', async (ctx) => {
   try { await ctx.answerCbQuery('Pre-verification saved'); } catch {}
-  await ctx.reply(
-    `${ai()} Pre-verification noted. You’ll get a ping when OCR is live.`,
-    mainMenu()
-  );
+  await ctx.reply(`${ai()} Pre-verification noted. You’ll get a ping when OCR is live.`, mainMenu());
 });
 
 // ----- TOURNAMENTS -----
 async function showTournaments(ctx) {
   await ctx.replyWithHTML(
-    '🎮 <b>Upcoming Tournaments</b>\n\n' +
+    '🎮 <b>Upcoming tournaments</b>\n\n' +
       '🏆 CS2 Weekend Showdown\n' +
       '🎲 Slot Spin-Off Battle\n' +
       '🕹️ 1v1 Loonie Arena\n\n' +
@@ -204,42 +203,107 @@ async function showTournaments(ctx) {
   );
 }
 bot.command('tournament', (ctx) => showTournaments(ctx));
-bot.action('TOURNAMENTS', async (ctx) => {
-  try { await ctx.answerCbQuery(); } catch {}
-  return showTournaments(ctx);
-});
+bot.action('TOURNAMENTS', async (ctx) => { try { await ctx.answerCbQuery(); } catch {} return showTournaments(ctx); });
+
+// ----- AFFILIATES -----
+function affiliatesRootKeyboard() {
+  return Markup.inlineKeyboard([
+    [Markup.button.callback('🧑‍💻 I’m an affiliate', 'AFF_EXISTING')],
+    [Markup.button.callback('🚀 Become an affiliate', 'AFF_JOIN')],
+    [Markup.button.callback('⬅️ Back to menu', 'HOME')],
+  ]);
+}
+
+async function showAffiliates(ctx) {
+  await ctx.replyWithHTML(
+    '🤝 <b>Affiliates</b>\n\nChoose your path:',
+    affiliatesRootKeyboard()
+  );
+}
+bot.command('affiliates', (ctx) => showAffiliates(ctx));
+bot.action('AFFILIATES', async (ctx) => { try { await ctx.answerCbQuery(); } catch {} return showAffiliates(ctx); });
+
+// Existing affiliates
+async function showExistingAffiliate(ctx) {
+  const rows = [];
+  if (AFFILIATE_PORTAL_URL) rows.push([Markup.button.url('🔐 Login to portal', AFFILIATE_PORTAL_URL)]);
+  if (AFFILIATE_PAYOUTS_URL) rows.push([Markup.button.url('💸 Payouts & terms', AFFILIATE_PAYOUTS_URL)]);
+  if (AFFILIATE_SUPPORT_URL) rows.push([Markup.button.url('🆘 Affiliate support', AFFILIATE_SUPPORT_URL)]);
+  rows.push([Markup.button.callback('⬅️ Back', 'AFFILIATES'), Markup.button.callback('🏠 Menu', 'HOME')]);
+
+  await ctx.replyWithHTML(
+    '🧑‍💻 <b>Resources for existing affiliates</b>\n\n' +
+      (rows.length > 1 ? 'Use the buttons below to access your tools.' : 'No links set yet. Check back soon.'),
+    Markup.inlineKeyboard(rows)
+  );
+}
+bot.action('AFF_EXISTING', async (ctx) => { try { await ctx.answerCbQuery(); } catch {} return showExistingAffiliate(ctx); });
+
+// Become affiliate (Kevin)
+async function showJoinAffiliate(ctx) {
+  const rows = [];
+
+  rows.push([Markup.button.url(`📞 Call Kevin (${KEVIN_PHONE_DISPLAY})`, KEVIN_PHONE_TEL)]);
+  rows.push([Markup.button.url('✉️ Email Kevin', KEVIN_EMAIL_MAILTO)]);
+
+  if (KEVIN_TG) rows.push([Markup.button.url('💬 Telegram DM', `https://t.me/${KEVIN_TG}`)]);
+  if (KEVIN_LINKEDIN) rows.push([Markup.button.url('🔗 LinkedIn', KEVIN_LINKEDIN)]);
+
+  if (AFFILIATE_APPLY_URL) rows.push([Markup.button.url('✅ Apply now', AFFILIATE_APPLY_URL)]);
+
+  rows.push([Markup.button.callback('⬅️ Back', 'AFFILIATES'), Markup.button.callback('🏠 Menu', 'HOME')]);
+
+  if (AFFILIATE_BANNER_URL) {
+    try {
+      await ctx.replyWithAnimation(AFFILIATE_BANNER_URL, {
+        caption:
+          '🚀 <b>Become an affiliate</b>\n\n' +
+          'Meet <b>Kevin Korthagen</b> — Affiliate Manager.\nChoose how you want to connect:',
+        parse_mode: 'HTML',
+        reply_markup: Markup.inlineKeyboard(rows).reply_markup
+      });
+      return;
+    } catch (e) {
+      console.warn('Affiliate banner failed, fallback to text:', e.message);
+    }
+  }
+
+  await ctx.replyWithHTML(
+    '🚀 <b>Become an affiliate</b>\n\n' +
+      'Meet <b>Kevin Korthagen</b> — Affiliate Manager.\nChoose how you want to connect:',
+    Markup.inlineKeyboard(rows)
+  );
+}
+bot.action('AFF_JOIN', async (ctx) => { try { await ctx.answerCbQuery(); } catch {} return showJoinAffiliate(ctx); });
 
 // Back to menu
-bot.action('HOME', async (ctx) => {
-  try { await ctx.answerCbQuery(); } catch {}
-  return sendHome(ctx);
-});
+bot.action('HOME', async (ctx) => { try { await ctx.answerCbQuery(); } catch {} return sendHome(ctx); });
 
-// ----- Lightweight AI-ish replies -----
+// ----- lightweight AI-ish replies -----
 bot.on('text', async (ctx) => {
   const m = (ctx.message.text || '').toLowerCase();
   if (m.includes('bonus')) return ctx.reply('🎁 Bonuses activate after your first deposit. Need help? Try /support');
   if (m.includes('withdraw')) return ctx.reply('💸 Withdrawals take 24–72h depending on method & verification.');
   if (m.includes('verify') || m.includes('id')) return ctx.reply('🔐 Use /verify to start your ID check.');
   if (m.includes('tournament')) return ctx.reply('🎮 Use /tournament for current events.');
+  if (m.includes('affiliate')) return showAffiliates(ctx);
   return ctx.reply('🤖 I’m learning. Use the menu or type /start.');
 });
 
-// ---------- webhook server (no polling, no bot.launch) ----------
+// ---------- webhook server (no polling) ----------
 const app = express();
 app.use(express.json());
 
-// health + static files
+// health + static
 app.get('/', (_req, res) => res.status(200).send('LooniePlay Telegram bot is up.'));
 app.get('/healthz', (_req, res) => res.status(200).send('ok'));
 app.use('/static', express.static(path.join(__dirname, 'public')));
 
-// Attach Telegraf webhook handler
+// webhook
 app.use(bot.webhookCallback(HOOK_PATH));
 
 async function bootstrap() {
   const fullHook = PUBLIC_BASE ? `${PUBLIC_BASE}${HOOK_PATH}` : null;
-
   try {
     if (fullHook) {
       const info = await bot.telegram.getWebhookInfo();
