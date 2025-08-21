@@ -33,14 +33,27 @@ const AFFILIATE_PAYOUTS_URL = process.env.AFFILIATE_PAYOUTS_URL || '';
 const AFFILIATE_SUPPORT_URL = process.env.AFFILIATE_SUPPORT_URL || '';
 const AFFILIATE_APPLY_URL = process.env.AFFILIATE_APPLY_URL || 'https://loonieplay.com/affiliates';
 
-// kevin contact
-const KEVIN_PHONE_DISPLAY = '+31 (0)6 16146537';
-const KEVIN_PHONE_TEL = 'tel:+31616146537';
+// Kevin contact (vast, uit je banner)
+const KEVIN_FIRST = 'Kevin';
+const KEVIN_LAST = 'Korthagen';
 const KEVIN_EMAIL = 'Kevin@loonieplay.com';
-const KEVIN_EMAIL_MAILTO = `mailto:${encodeURIComponent(KEVIN_EMAIL)}?subject=${encodeURIComponent('LooniePlay affiliate inquiry')}`;
-const KEVIN_TG = (process.env.KEVIN_TG || '').replace(/^@/, '');
+const KEVIN_PHONE_E164 = '+31616146537';             // voor contact-kaart
+const KEVIN_PHONE_HUMAN = '+31 (0)6 16146537';       // voor weergave
+const KEVIN_TG = (process.env.KEVIN_TG || '').replace(/^@/, ''); // optioneel
 const KEVIN_LINKEDIN = process.env.KEVIN_LINKEDIN || '';
 
+const KEVIN_VCARD =
+  `BEGIN:VCARD
+VERSION:3.0
+N:${KEVIN_LAST};${KEVIN_FIRST};;;
+FN:${KEVIN_FIRST} ${KEVIN_LAST}
+ORG:LooniePlay
+TEL;TYPE=CELL:${KEVIN_PHONE_E164}
+EMAIL;TYPE=INTERNET:${KEVIN_EMAIL}
+URL:https://loonieplay.com
+END:VCARD`;
+
+// UI
 const mainMenu = () =>
   Markup.inlineKeyboard([
     [Markup.button.callback('🎁 Promotions', 'PROMO')],
@@ -56,7 +69,7 @@ const backMenu = () =>
 
 const ai = () => ['✨', '⚡', '🚀', '🤖', '🎯', '🧠'][Math.floor(Math.random() * 6)];
 
-// ---------- global middlewares ----------
+// ---------- middlewares ----------
 bot.catch((err, ctx) => {
   console.error('Bot error on', ctx.updateType, err);
 });
@@ -98,9 +111,7 @@ async function sendHome(ctx) {
         ...mainMenu()
       });
       return;
-    } catch (e) {
-      console.warn('Banner failed, fallback to text:', e.message);
-    }
+    } catch (e) { console.warn('Banner failed, fallback to text:', e.message); }
   }
   await ctx.replyWithMarkdown(
     `${ai()} *Welcome, ${name}!*` +
@@ -215,10 +226,7 @@ function affiliatesRootKeyboard() {
 }
 
 async function showAffiliates(ctx) {
-  await ctx.replyWithHTML(
-    '🤝 <b>Affiliates</b>\n\nChoose your path:',
-    affiliatesRootKeyboard()
-  );
+  await ctx.replyWithHTML('🤝 <b>Affiliates</b>\n\nChoose your path:', affiliatesRootKeyboard());
 }
 bot.command('affiliates', (ctx) => showAffiliates(ctx));
 bot.action('AFFILIATES', async (ctx) => { try { await ctx.answerCbQuery(); } catch {} return showAffiliates(ctx); });
@@ -243,12 +251,12 @@ bot.action('AFF_EXISTING', async (ctx) => { try { await ctx.answerCbQuery(); } c
 async function showJoinAffiliate(ctx) {
   const rows = [];
 
-  rows.push([Markup.button.url(`📞 Call Kevin (${KEVIN_PHONE_DISPLAY})`, KEVIN_PHONE_TEL)]);
-  rows.push([Markup.button.url('✉️ Email Kevin', KEVIN_EMAIL_MAILTO)]);
+  // Geen tel/mailto URL's → callbacks sturen contact en mailbericht
+  rows.push([Markup.button.callback(`📞 Call Kevin (${KEVIN_PHONE_HUMAN})`, 'AFF_CALL_KEVIN')]);
+  rows.push([Markup.button.callback('✉️ Email Kevin', 'AFF_EMAIL_KEVIN')]);
 
   if (KEVIN_TG) rows.push([Markup.button.url('💬 Telegram DM', `https://t.me/${KEVIN_TG}`)]);
   if (KEVIN_LINKEDIN) rows.push([Markup.button.url('🔗 LinkedIn', KEVIN_LINKEDIN)]);
-
   if (AFFILIATE_APPLY_URL) rows.push([Markup.button.url('✅ Apply now', AFFILIATE_APPLY_URL)]);
 
   rows.push([Markup.button.callback('⬅️ Back', 'AFFILIATES'), Markup.button.callback('🏠 Menu', 'HOME')]);
@@ -258,7 +266,7 @@ async function showJoinAffiliate(ctx) {
       await ctx.replyWithAnimation(AFFILIATE_BANNER_URL, {
         caption:
           '🚀 <b>Become an affiliate</b>\n\n' +
-          'Meet <b>Kevin Korthagen</b> — Affiliate Manager.\nChoose how you want to connect:',
+          `Meet <b>${KEVIN_FIRST} ${KEVIN_LAST}</b> — Affiliate Manager.\nChoose how you want to connect:`,
         parse_mode: 'HTML',
         reply_markup: Markup.inlineKeyboard(rows).reply_markup
       });
@@ -270,11 +278,32 @@ async function showJoinAffiliate(ctx) {
 
   await ctx.replyWithHTML(
     '🚀 <b>Become an affiliate</b>\n\n' +
-      'Meet <b>Kevin Korthagen</b> — Affiliate Manager.\nChoose how you want to connect:',
+      `Meet <b>${KEVIN_FIRST} ${KEVIN_LAST}</b> — Affiliate Manager.\nChoose how you want to connect:`,
     Markup.inlineKeyboard(rows)
   );
 }
 bot.action('AFF_JOIN', async (ctx) => { try { await ctx.answerCbQuery(); } catch {} return showJoinAffiliate(ctx); });
+
+// Actions voor call/email
+bot.action('AFF_CALL_KEVIN', async (ctx) => {
+  try { await ctx.answerCbQuery('Sending contact…'); } catch {}
+  await ctx.replyWithContact(KEVIN_PHONE_E164, KEVIN_FIRST, {
+    last_name: KEVIN_LAST,
+    vcard: KEVIN_VCARD
+  });
+  await ctx.reply(
+    `📞 Tap the contact above to call ${KEVIN_FIRST}.`,
+    Markup.inlineKeyboard([[Markup.button.callback('⬅️ Back', 'AFFILIATES'), Markup.button.callback('🏠 Menu', 'HOME')]])
+  );
+});
+
+bot.action('AFF_EMAIL_KEVIN', async (ctx) => {
+  try { await ctx.answerCbQuery(); } catch {}
+  await ctx.replyWithHTML(
+    `✉️ Email <b>${KEVIN_FIRST} ${KEVIN_LAST}</b>: <a href="mailto:${KEVIN_EMAIL}">${KEVIN_EMAIL}</a>`,
+    Markup.inlineKeyboard([[Markup.button.callback('⬅️ Back', 'AFFILIATES'), Markup.button.callback('🏠 Menu', 'HOME')]])
+  );
+});
 
 // Back to menu
 bot.action('HOME', async (ctx) => { try { await ctx.answerCbQuery(); } catch {} return sendHome(ctx); });
