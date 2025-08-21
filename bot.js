@@ -56,12 +56,9 @@ END:VCARD`;
 // UI
 const mainMenu = () =>
   Markup.inlineKeyboard([
-    [Markup.button.callback('🎁 Promotions', 'PROMO')],
-    [Markup.button.callback('📖 FAQ', 'FAQ')],
-    [Markup.button.callback('🆘 Support', 'SUPPORT')],
-    [Markup.button.callback('🔐 Verify Me', 'VERIFY')],
-    [Markup.button.callback('🎮 Tournaments', 'TOURNAMENTS')],
-    [Markup.button.callback('🤝 Affiliates', 'AFFILIATES')],
+    [Markup.button.callback('🎁 Promotions', 'PROMO'),  Markup.button.callback('📖 FAQ', 'FAQ')],
+    [Markup.button.callback('🆘 Support', 'SUPPORT'),   Markup.button.callback('🔐 Verify Me', 'VERIFY')],
+    [Markup.button.callback('🎮 Tournaments', 'TOURNAMENTS'), Markup.button.callback('🤝 Affiliates', 'AFFILIATES')],
   ]);
 
 const backMenu = () =>
@@ -219,8 +216,8 @@ bot.action('TOURNAMENTS', async (ctx) => { try { await ctx.answerCbQuery(); } ca
 // ----- AFFILIATES -----
 function affiliatesRootKeyboard() {
   return Markup.inlineKeyboard([
-    [Markup.button.callback('🧑‍💻 I’m an affiliate', 'AFF_EXISTING')],
-    [Markup.button.callback('🚀 Become an affiliate', 'AFF_JOIN')],
+    [Markup.button.callback('🧑‍💻 I’m an affiliate', 'AFF_EXISTING'),
+     Markup.button.callback('🚀 Become an affiliate', 'AFF_JOIN')],
     [Markup.button.callback('⬅️ Back to menu', 'HOME')],
   ]);
 }
@@ -233,15 +230,18 @@ bot.action('AFFILIATES', async (ctx) => { try { await ctx.answerCbQuery(); } cat
 
 // Existing affiliates
 async function showExistingAffiliate(ctx) {
+  const btns = [];
+  if (AFFILIATE_PORTAL_URL)  btns.push(Markup.button.url('🔐 Login to portal',  AFFILIATE_PORTAL_URL));
+  if (AFFILIATE_PAYOUTS_URL) btns.push(Markup.button.url('💸 Payouts & terms',  AFFILIATE_PAYOUTS_URL));
+  if (AFFILIATE_SUPPORT_URL) btns.push(Markup.button.url('🆘 Affiliate support', AFFILIATE_SUPPORT_URL));
+
+  // in 2 kolommen renderen
   const rows = [];
-  if (AFFILIATE_PORTAL_URL) rows.push([Markup.button.url('🔐 Login to portal', AFFILIATE_PORTAL_URL)]);
-  if (AFFILIATE_PAYOUTS_URL) rows.push([Markup.button.url('💸 Payouts & terms', AFFILIATE_PAYOUTS_URL)]);
-  if (AFFILIATE_SUPPORT_URL) rows.push([Markup.button.url('🆘 Affiliate support', AFFILIATE_SUPPORT_URL)]);
+  for (let i = 0; i < btns.length; i += 2) rows.push(btns.slice(i, i + 2));
   rows.push([Markup.button.callback('⬅️ Back', 'AFFILIATES'), Markup.button.callback('🏠 Menu', 'HOME')]);
 
   await ctx.replyWithHTML(
-    '🧑‍💻 <b>Resources for existing affiliates</b>\n\n' +
-      (rows.length > 1 ? 'Use the buttons below to access your tools.' : 'No links set yet. Check back soon.'),
+    '🧑‍💻 <b>Resources for existing affiliates</b>\n\nUse the buttons below.',
     Markup.inlineKeyboard(rows)
   );
 }
@@ -252,21 +252,24 @@ async function showJoinAffiliate(ctx) {
   const rows = [];
 
   // Geen tel/mailto URL's → callbacks sturen contact en mailbericht
-  rows.push([Markup.button.callback(`📞 Call Kevin (${KEVIN_PHONE_HUMAN})`, 'AFF_CALL_KEVIN')]);
-  rows.push([Markup.button.callback('✉️ Email Kevin', 'AFF_EMAIL_KEVIN')]);
+async function showJoinAffiliate(ctx) {
+  const rows = [
+    [Markup.button.callback(`📞 Call Kevin (${KEVIN_PHONE_HUMAN})`, 'AFF_CALL_KEVIN'),
+     Markup.button.callback('✉️ Email Kevin', 'AFF_EMAIL_KEVIN')],
+  ];
 
-  if (KEVIN_TG) rows.push([Markup.button.url('💬 Telegram DM', `https://t.me/${KEVIN_TG}`)]);
-  if (KEVIN_LINKEDIN) rows.push([Markup.button.url('🔗 LinkedIn', KEVIN_LINKEDIN)]);
+  const extraRow = [];
+  if (KEVIN_TG)      extraRow.push(Markup.button.url('💬 Telegram DM', `https://t.me/${KEVIN_TG}`));
+  if (KEVIN_LINKEDIN) extraRow.push(Markup.button.url('🔗 LinkedIn', KEVIN_LINKEDIN));
+  if (extraRow.length) rows.push(extraRow);
+
   if (AFFILIATE_APPLY_URL) rows.push([Markup.button.url('✅ Apply now', AFFILIATE_APPLY_URL)]);
-
   rows.push([Markup.button.callback('⬅️ Back', 'AFFILIATES'), Markup.button.callback('🏠 Menu', 'HOME')]);
 
   if (AFFILIATE_BANNER_URL) {
     try {
       await ctx.replyWithAnimation(AFFILIATE_BANNER_URL, {
-        caption:
-          '🚀 <b>Become an affiliate</b>\n\n' +
-          `Meet <b>${KEVIN_FIRST} ${KEVIN_LAST}</b> — Affiliate Manager.\nChoose how you want to connect:`,
+        caption: '🚀 <b>Become an affiliate</b>\n\nMeet <b>Kevin Korthagen</b> — Affiliate Manager.\nChoose how you want to connect:',
         parse_mode: 'HTML',
         reply_markup: Markup.inlineKeyboard(rows).reply_markup
       });
@@ -275,6 +278,13 @@ async function showJoinAffiliate(ctx) {
       console.warn('Affiliate banner failed, fallback to text:', e.message);
     }
   }
+
+  await ctx.replyWithHTML(
+    '🚀 <b>Become an affiliate</b>\n\nMeet <b>Kevin Korthagen</b> — Affiliate Manager.\nChoose how you want to connect:',
+    Markup.inlineKeyboard(rows)
+  );
+}
+
 
   await ctx.replyWithHTML(
     '🚀 <b>Become an affiliate</b>\n\n' +
